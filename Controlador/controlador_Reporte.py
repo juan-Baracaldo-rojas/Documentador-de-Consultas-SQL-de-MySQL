@@ -521,3 +521,84 @@ def proteger_pdf_con_pypdf(ruta_pdf: str, password: str | None = None):
     with open(ruta_pdf, "wb") as f:
         writer.write(f)
 
+
+# MENU PRINCIPAL DE EJECUCION
+def main():
+    parser = argparse.ArgumentParser(
+        description="Genera un reporte PDF a partir de una o varias consultas MySQL."
+    )
+    parser.add_argument("--host", default=DB_CONFIG["host"])
+    parser.add_argument("--port", type=int, default=DB_CONFIG["port"])
+    parser.add_argument("--user", default=DB_CONFIG["user"])
+    parser.add_argument("--password", default=DB_CONFIG["password"])
+    parser.add_argument("--database", default=DB_CONFIG["database"])
+    parser.add_argument(
+        "--query", action="append", default=None,
+        help="Consulta SQL a ejecutar. Puedes repetir esta opción para incluir varias consultas "
+             "en el mismo reporte (cada una se agrega en el orden dado).",
+    )
+    parser.add_argument(
+        "--queries-file", default=None,
+        help="Ruta a un archivo .sql con una o varias consultas separadas por ';'. "
+             "Opcionalmente, antepone '-- nombre: Mi consulta' a cada una para nombrarla.",
+    )
+    parser.add_argument("--output", default=OUTPUT_PDF, help="Ruta del PDF de salida")
+    parser.add_argument("--titulo", default=REPORT_TITLE, help="Título general del reporte")
+    args = parser.parse_args()
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "user": args.user,
+        "password": args.password,
+        "database": args.database,
+        "cursorclass": pymysql.cursors.DictCursor,
+    }
+
+    # Determinar la lista de consultas a ejecutar, en orden de prioridad:
+    # --queries-file > --query (una o varias) > SQL_QUERIES por defecto.
+    if args.queries_file:
+        consultas = cargar_consultas_desde_archivo(args.queries_file)
+        if not consultas:
+            print(f"No se encontraron consultas en el archivo: {args.queries_file}", file=sys.stderr)
+            sys.exit(1)
+    elif args.query:
+        consultas = [
+            {"nombre": f"Consulta {i}", "query": q} for i, q in enumerate(args.query, start=1)
+        ]
+    else:
+        consultas = SQL_QUERIES
+
+    print(f"Conectando a MySQL en {config['host']}:{config['port']} / DB: {config['database']} ...")
+    print(f"Se procesarán {len(consultas)} consulta(s).")
+
+    resultados = []
+    for i, c in enumerate(consultas, start=1):
+        nombre, query = c["nombre"], c["query"]
+        print(f"\n[{i}/{len(consultas)}] Ejecutando: {nombre}")
+        resultado = procesar_consulta(config, nombre, query)
+
+        if resultado["error"]:
+            print(f"  ERROR: {resultado['error']}")
+        else:
+            print(
+                f"  OK - {resultado['tiempo_ejecucion'] * 1000:.2f} ms - "
+                f"{len(resultado['filas'])} filas"
+            )
+            for t in resultado["info_tablas"]:
+                estado = t["indice"] if t["usa_indice"] else "SIN ÍNDICE (full scan)"
+                print(f"    Tabla '{t['tabla']}': {estado}")
+
+        resultados.append(resultado)
+
+    print("\nGenerando reporte PDF...")
+    construir_pdf_multiple(resultados, args.output, args.titulo)
+    print(f"Reporte generado exitosamente: {args.output}")
+
+    errores = [r for r in resultados if r["error"]]
+    if errores:
+        print(
+            f"\nAdvertencia: {len(errores)} de {len(resultados)} consulta(s) fallaron. "
+            "Revisa la sección correspondiente en el PDF para más detalle.",
+            file=sys.stderr,
+        )
