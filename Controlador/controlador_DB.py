@@ -169,3 +169,37 @@ def calcular_metricas_texto(columnas, filas, max_top_valores=5, umbral_categoric
         }
 
     return metricas
+
+
+# INFORME
+def procesar_consulta(config: dict, nombre: str, query: str) -> dict:
+    resultado = {
+        "nombre": nombre,
+        "query": query,
+        "error": None,
+        "columnas": [],
+        "filas": [],
+        "tiempo_ejecucion": None,
+        "info_tablas": [],
+        "metricas": None,
+        "metricas_texto": None,
+    }
+
+    try:
+        columnas, filas, tiempo_ejecucion = ejecutar_consulta(config, query)
+    except pymysql.MySQLError as e:
+        resultado["error"] = str(e)
+        return resultado
+
+    resultado["columnas"] = columnas
+    resultado["filas"] = filas
+    resultado["tiempo_ejecucion"] = tiempo_ejecucion
+
+    plan = analizar_plan_consulta(config, query)
+    resultado["info_tablas"] = resumir_uso_indices(plan)
+
+    resultado["metricas"] = calcular_metricas(columnas, filas)
+    resultado["metricas_texto"] = calcular_metricas_texto(columnas, filas)
+
+    return resultado
+
