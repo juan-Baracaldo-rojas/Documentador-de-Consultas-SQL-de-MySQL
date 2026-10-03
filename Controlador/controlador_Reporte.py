@@ -57,3 +57,88 @@ DB_CONFIG = {
 }
 
 MAX_ROWS_IN_TABLE = 50
+
+# ESTILOS Y FORMATOS
+def formatear_numero(valor):
+    if isinstance(valor, float):
+        return f"{valor:,.2f}"
+    if isinstance(valor, decimal.Decimal):
+        return f"{valor:,.2f}"
+    if isinstance(valor, int):
+        return f"{valor:,}"
+    try:
+        return f"{float(valor):,.2f}"
+    except (TypeError, ValueError):
+        return str(valor)
+
+def construir_estilos():
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="Subtitulo",
+            parent=styles["Heading2"],
+            textColor=colors.HexColor("#1f4e79"),
+            spaceAfter=10,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TituloConsulta",
+            parent=styles["Heading1"],
+            textColor=colors.HexColor("#1f4e79"),
+            fontSize=16,
+            spaceAfter=8,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Metrica",
+            parent=styles["Normal"],
+            fontSize=10,
+            leading=14,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Codigo",
+            parent=styles["Normal"],
+            fontName="Courier",
+            fontSize=8,
+            textColor=colors.HexColor("#333333"),
+            backColor=colors.HexColor("#f2f2f2"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SubSubtitulo",
+            parent=styles["Heading3"],
+            textColor=colors.HexColor("#1f4e79"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Aviso",
+            parent=styles["Normal"],
+            fontSize=10,
+            leading=14,
+            backColor=colors.HexColor("#fdecea"),
+            borderColor=colors.HexColor("#c0392b"),
+            borderWidth=0.5,
+            borderPadding=6,
+            textColor=colors.HexColor("#7a2c22"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Error",
+            parent=styles["Normal"],
+            fontSize=10,
+            leading=14,
+            backColor=colors.HexColor("#fdecea"),
+            borderColor=colors.HexColor("#c0392b"),
+            borderWidth=0.5,
+            borderPadding=8,
+            textColor=colors.HexColor("#7a2c22"),
+        )
+    )
+    return styles
