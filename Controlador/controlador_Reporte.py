@@ -505,3 +505,19 @@ def construir_pdf_multiple(resultados, ruta_salida, titulo_general):
             story.append(PageBreak())
 
     doc.build(story)
+
+# ENCRIPTACION 
+def proteger_pdf_con_pypdf(ruta_pdf: str, password: str | None = None):
+    from pypdf import PdfReader, PdfWriter
+
+    reader = PdfReader(ruta_pdf)
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+
+    if password:
+        writer.encrypt(password)
+
+    with open(ruta_pdf, "wb") as f:
+        writer.write(f)
+
